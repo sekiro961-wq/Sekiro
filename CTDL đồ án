@@ -1,0 +1,10 @@
+#include <iostream>
+#include <fstream>
+#include <cstring>
+#include <cstdlib>
+#include <cctype>
+#include <iomanip>
+using namespace std;
+
+const int MAX_LOPSV = 10000;
+

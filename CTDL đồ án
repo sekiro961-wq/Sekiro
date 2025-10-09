@@ -7,7 +7,18 @@
 using namespace std;
 
 const int MAX_LOPSV = 10000;
-//Sinh viên
+//Môn học
+struct MonHoc {
+	char MAMH[11] ; char TENMH[51] , 
+	int STCLT ,STCTH; int height;
+};
+struct nodeMH {
+	MonHoc mh;
+	nodeMH *left, *right;
+};
+typedef nodeMH* treeMH;
+
+//====Sinh viên====
 struct SinhVien {
 	char MASV[16];
 	char HO[51];
@@ -108,5 +119,155 @@ void DocFile_SV(PTRSV &First, const char* filename) {
 	}
 	fi.close();
 }
+
+//====Lớp SV====
+struct LopSV  {
+	char MALOP[16]; char TENLOP[51];
+	PTRSV FirstSV=NULL;
+};
+struct DS_LOPSV {
+	int n=0;
+	LopSV *nodes[MAX_LOPSV];
+};
+//Tìm lớp sinh viên theo mã lớp
+LopSV* TimKiemLopSV(DS_LOPSV &ds, const char* malop) {
+	for (int i = 0; i < ds.n; i++) {
+		if (strcmp(ds.nodes[i]->MALOP, malop) == 0) {
+			return ds.nodes[i]; // tìm thấy lớp
+		}
+	}
+	return NULL; // không tìm thấy
+}
+
+//Thêm lớp sinh viên vào danh sách
+bool ThemLopSV(DS_LOPSV &ds, LopSV lop) {
+	if (ds.n >= MAX_LOPSV) {
+		cout << "Danh sach lop sinh vien da day!\n";
+		return false;
+	}
+	if (TimKiemLopSV(ds, lop.MALOP) != NULL) {
+		cout << "Ma lop da ton tai!\n";
+		return false;
+	}
+	LopSV* p = new LopSV;
+	*p = lop;
+	p->FirstSV = NULL;
+	ds.nodes[ds.n++] = p;
+	return true;
+}
+
+//Save và đọc file LopSV
+void GhiFile_LopSV(DS_LOPSV ds, const char* filename) {
+	ofstream fo(filename);
+	if (!fo) {
+		cout << "Khong mo duoc file de ghi!\n";
+		return;
+	}
+	for (int i = 0; i < ds.n; i++) {
+		fo << ds.nodes[i]->MALOP << ',' << ds.nodes[i]->TENLOP << endl;
+	}
+	fo.close();
+}
+void DocFile_LopSV(DS_LOPSV &ds, const char* filename) {
+	ifstream fi(filename);
+	if (!fi) {
+		cout << "Khong mo duoc file de doc!\n";
+		return;
+	}
+	string tmp;
+	LopSV lop;
+	while (getline(fi, tmp, ',')) {
+		strcpy(lop.MALOP, tmp.c_str());
+		getline(fi, tmp);
+		strcpy(lop.TENLOP, tmp.c_str());
+		lop.FirstSV = NULL;
+		ThemLopSV(ds, lop);
+	}
+	fi.close();
+}
+//Cập nhật sinh viên của 1 lớp
+void CapNhatSV_1Lop(DS_LOPSV &ds) {
+	char malop[16];
+	cout << "Nhap ma lop can cap nhat SV: ";
+	cin.getline(malop, 16);
+	LopSV* lop = TimKiemLopSV(ds, malop);
+	if (lop == NULL) {
+		cout << "Khong tim thay lop!\n";
+		return;
+	}
+	cout << "=== CAP NHAT SINH VIEN CHO LOP: " << lop->TENLOP << " ===\n";
+
+	while (true) {
+		cout << "\n1. Them SV\n2. Xoa SV\n3. Hieu chinh SV\n0. Thoat\nChon: ";
+		int chon; cin >> chon; cin.ignore();
+		if (chon == 0) break;
+
+		switch (chon) {
+		case 1: {
+			while (true) {
+				SinhVien sv;
+				cout << "\nNhap ma SV (Enter de dung): ";
+				cin.getline(sv.MASV, 16);
+				if (strlen(sv.MASV) == 0) break; // dừng nhập
+				if (TimKiemSV(lop->FirstSV, sv.MASV)) {
+					cout << "Ma SV da ton tai!\n";
+					continue;
+				}
+				cout << "Nhap ho: "; cin.getline(sv.HO, 51);
+				cout << "Nhap ten: "; cin.getline(sv.TEN, 11);
+				cout << "Nhap phai: "; cin.getline(sv.PHAI, 4);
+				cout << "Nhap SDT: "; cin.getline(sv.SODT, 16);
+				cout << "Nhap email: "; cin.getline(sv.Email, 50);
+				ThemSV(lop->FirstSV, sv);
+			}
+			break;
+		}
+		case 2: {
+			char masv[16];
+			cout << "Nhap ma SV can xoa: ";
+			cin.getline(masv, 16);
+			if (XoaSV(lop->FirstSV, masv))
+				cout << "Da xoa!\n";
+			else
+				cout << "Khong tim thay SV!\n";
+			break;
+		}
+		case 3: {
+			char masv[16];
+			cout << "Nhap ma SV can hieu chinh: ";
+			cin.getline(masv, 16);
+			if (HieuChinhSV(lop->FirstSV, masv))
+				cout << "Da cap nhat!\n";
+			else
+				cout << "Khong tim thay SV!\n";
+			break;
+		}
+		default: cout << "Lua chon khong hop le!\n";
+		}
+	}
+}
+//
+struct DangKy {
+	char MASV[16]; float DIEM;
+	bool huydangky=false;
+};
+struct nodeDK {
+	DangKy dk;
+	nodeDK *next;
+};
+typedef nodeDK* PTRDK;
+struct LopTinChi {
+	int MALOPTC;
+	char MAMH[11];
+	char NienKhoa[10];
+	int Hocky, Nhom, sosvmin, sosvmax;
+	bool huylop = false;
+	PTRDK dssvdk=NULL;
+};
+struct nodeLopTinChi {
+	LopTinChi ltc;
+	nodeLopTinChi *next;
+};
+typedef nodeLopTinChi* PTRLTC;
 
 

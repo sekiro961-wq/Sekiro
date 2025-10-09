@@ -269,5 +269,11 @@ struct nodeLopTinChi {
 	nodeLopTinChi *next;
 };
 typedef nodeLopTinChi* PTRLTC;
+ int main(){
+    PTRLTC dsltc=NULL;
+ 	treeMH dsmh=NULL;
+ 	DS_LOPSV dslopsv;
+ }
+
 
 

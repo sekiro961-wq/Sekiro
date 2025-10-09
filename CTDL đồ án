@@ -7,4 +7,106 @@
 using namespace std;
 
 const int MAX_LOPSV = 10000;
+//Sinh viên
+struct SinhVien {
+	char MASV[16];
+	char HO[51];
+	char TEN[11];
+	char PHAI[4];
+	char SODT[16];
+	char Email[50];
+};
+struct nodeSV {
+	SinhVien sv;
+	nodeSV *next;
+};
+typedef nodeSV* PTRSV;
+//Tạo node sv
+nodeSV* TaoNodeSV(SinhVien sv) {
+	nodeSV* p = new nodeSV;
+	p->sv = sv;
+	p->next = NULL;
+	return p;
+}
+//Tìm sv theo mã
+nodeSV* TimKiemSV(PTRSV First, const char* masv) {
+	for (nodeSV* p = First; p != NULL; p = p->next)
+		if (strcmp(p->sv.MASV, masv) == 0) return p;
+	return NULL;
+}
+//Thêm sv vào ds
+void ThemSV(PTRSV &First, SinhVien sv) {
+	nodeSV* p = TaoNodeSV(sv);
+	if (First == NULL) {
+		First = p;
+		return;
+	}
+	nodeSV* q = First;
+	while (q->next != NULL) q = q->next;
+	q->next = p;
+}
+//Xóa sinh viên theo mã trong lớp
+bool XoaSV(PTRSV &First, const char* masv) {
+	nodeSV* p = First, *prev = NULL;
+	while (p != NULL && strcmp(p->sv.MASV, masv) != 0) {
+		prev = p; p = p->next;
+	}
+	if (p == NULL) return false; // không thấy
+	if (prev == NULL) First = p->next;
+	else prev->next = p->next;
+	delete p;
+	return true;
+}
+//Hiệu chỉnh sinh viên
+bool HieuChinhSV(PTRSV &First, const char* masv) {
+	nodeSV* p = TimKiemSV(First, masv);
+	if (p == NULL) return false;
+	cout << "Nhap ho moi (bo trong neu giu nguyen): ";
+	char tmp[51]; cin.getline(tmp, 51);
+	if (strlen(tmp) > 0) strcpy(p->sv.HO, tmp);
+
+	cout << "Nhap ten moi (bo trong neu giu nguyen): ";
+	cin.getline(tmp, 11);
+	if (strlen(tmp) > 0) strcpy(p->sv.TEN, tmp);
+
+	cout << "Nhap phai moi (bo trong neu giu nguyen): ";
+	cin.getline(tmp, 4);
+	if (strlen(tmp) > 0) strcpy(p->sv.PHAI, tmp);
+
+	cout << "Nhap SDT moi (bo trong neu giu nguyen): ";
+	cin.getline(tmp, 16);
+	if (strlen(tmp) > 0) strcpy(p->sv.SODT, tmp);
+
+	cout << "Nhap email moi (bo trong neu giu nguyen): ";
+	cin.getline(tmp, 50);
+	if (strlen(tmp) > 0) strcpy(p->sv.Email, tmp);
+
+	return true;
+}
+//Save và đọc File SV
+void GhiFile_SV(PTRSV First, const char* filename) {
+	ofstream fo(filename);
+	for (nodeSV* p = First; p != NULL; p = p->next) {
+		fo << p->sv.MASV << ',' << p->sv.HO << ','
+		   << p->sv.TEN << ',' << p->sv.PHAI << ','
+		   << p->sv.SODT << ',' << p->sv.Email << endl;
+	}
+	fo.close();
+}
+void DocFile_SV(PTRSV &First, const char* filename) {
+	ifstream fi(filename);
+	SinhVien sv;
+	string tmp;
+	while (getline(fi, tmp, ',')) {
+		strcpy(sv.MASV, tmp.c_str());
+		getline(fi, tmp, ','); strcpy(sv.HO, tmp.c_str());
+		getline(fi, tmp, ','); strcpy(sv.TEN, tmp.c_str());
+		getline(fi, tmp, ','); strcpy(sv.PHAI, tmp.c_str());
+		getline(fi, tmp, ','); strcpy(sv.SODT, tmp.c_str());
+		getline(fi, tmp); strcpy(sv.Email, tmp.c_str());
+		ThemSV(First, sv);
+	}
+	fi.close();
+}
+
 

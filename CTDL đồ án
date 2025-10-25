@@ -4,21 +4,31 @@
 #include <cstdlib>
 #include <cctype>
 #include <iomanip>
+#include <algorithm>
+#include <limits>
+#include <string>
 using namespace std;
 
 const int MAX_LOPSV = 10000;
-//Môn học
+int LTC_ID_COUNTER = 0;
+
+// =========================================================
+//                  I. KHAI BÁO CẤU TRÚC
+// =========================================================
 struct MonHoc {
-	char MAMH[11] ; char TENMH[51] , 
-	int STCLT ,STCTH; int height;
+	char MAMH[11];
+	char TENMH[51];
+	int STCLT;
+	int STCTH;
+	int height;
 };
+
 struct nodeMH {
 	MonHoc mh;
 	nodeMH *left, *right;
 };
 typedef nodeMH* treeMH;
 
-//====Sinh viên====
 struct SinhVien {
 	char MASV[16];
 	char HO[51];
@@ -32,20 +42,251 @@ struct nodeSV {
 	nodeSV *next;
 };
 typedef nodeSV* PTRSV;
-//Tạo node sv
+
+struct LopSV {
+	char MALOP[16];
+    char TENLOP[51];
+	PTRSV FirstSV = NULL;
+};
+struct DS_LOPSV {
+	int n = 0;
+	LopSV *nodes[MAX_LOPSV];
+};
+
+
+struct DangKy {
+	char MASV[16];
+    float DIEM;
+	bool huydangky = false;
+};
+struct nodeDK {
+	DangKy dk;
+	nodeDK *next;
+};
+typedef nodeDK* PTRDK;
+
+
+struct LopTinChi {
+	int MALOPTC;
+	char MAMH[11];
+	char NienKhoa[10];
+	int Hocky, Nhom, sosvmin, sosvmax;
+	bool huylop = false;
+	PTRDK dssvdk = NULL;
+};
+struct nodeLopTinChi {
+	LopTinChi ltc;
+	nodeLopTinChi *next;
+};
+typedef nodeLopTinChi* PTRLTC;
+
+// =========================================================
+//             II. KHAI BÁO NGUYÊN MẪU HÀM
+// =========================================================
+
+// Khai báo các hàm menu
+void clearScreen();
+void pause();
+void runMenu(PTRLTC &dsltc, treeMH &dsmh, DS_LOPSV &dslopsv);
+void menuDanhMuc(DS_LOPSV &dslopsv, treeMH &dsmh);
+void menuLopTinChi(PTRLTC &dsltc, treeMH &dsmh, DS_LOPSV &dslopsv);
+void menuQuanLyDiem(PTRLTC &dsltc, treeMH &dsmh, DS_LOPSV &dslopsv);
+
+
+// Khai báo các hàm quản lý dữ liệu
+nodeSV* TimKiemSV(PTRSV First, const char* masv);
+nodeSV* timKiemSV_ToanTruong(DS_LOPSV &dslopsv, const char* masv);
+void CapNhatSV_1Lop(DS_LOPSV &ds);
+void InDSSV_1Lop(DS_LOPSV &ds);
+nodeMH* TimKiemMH(treeMH root, const char* mamh);
+void CapNhatMonHoc(treeMH &root);
+void InDSMHTangDanTheoTen(treeMH root);
+void CapNhatLopTinChi(PTRLTC &First, treeMH dsmh);
+void In_DSSV_DaDangKy_LTC(PTRLTC dsltc, DS_LOPSV &dslopsv);
+void DangKy_LTC(PTRLTC &dsltc, DS_LOPSV &dslopsv);
+
+
+// =========================================================
+//            III. TRIỂN KHAI HÀM GIAO DIỆN
+// =========================================================
+
+void clearScreen() {
+	system("cls");
+}
+
+void pause() {
+	cout << "\nNhan ENTER de tiep tuc...";
+	cin.get();
+}
+
+void showMainMenu() {
+    clearScreen();
+    cout << "===============================================" << endl;
+    cout << "           HE THONG QUAN LY DIEM SINH VIEN      " << endl;
+    cout << "===============================================" << endl;
+    cout << " [1] QUAN LY DANH MUC (Mon hoc, Lop SV)         " << endl;
+    cout << " [2] QUAN LY LOP TIN CHI & DANG KY              " << endl;
+    cout << " [3] QUAN LY NHAP/IN DIEM & THONG KE            " << endl;
+    cout << " [9] LUU TRU & PHUC HOI DU LIEU                 " << endl;
+    cout << " [0] THOAT CHUONG TRINH                         " << endl;
+    cout << "===============================================" << endl;
+    cout << " >> Nhap lua chon cua ban: ";
+}
+
+void showMenuDanhMuc() {
+    cout << "\n======== QUAN LY DANH MUC ========" << endl;
+    cout << " [1] Cap nhat Mon Hoc (T/X/H) (E)" << endl;
+    cout << " [2] In Danh sach Mon Hoc (tang dan theo ten) (F)" << endl;
+    cout << " [3] In Danh sach Sinh Vien cua mot Lop (sap xep Ten+Ho) (D)" << endl;
+    cout << " [4] Cap nhat Sinh Vien cua mot Lop (T/X/H) (C)" << endl;
+    cout << " [0] Quay lai Menu Chinh" << endl;
+    cout << "----------------------------------" << endl;
+    cout << " >> Nhap lua chon cua ban: ";
+}
+
+void menuDanhMuc(DS_LOPSV &dslopsv, treeMH &dsmh) {
+    int choice;
+    do {
+        clearScreen();
+        showMenuDanhMuc();
+        if (!(cin >> choice)) { 
+            cin.clear(); 
+            choice = -1; 
+        }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        switch (choice) {
+            case 1: CapNhatMonHoc(dsmh); break;
+            case 2: InDSMHTangDanTheoTen(dsmh); break;
+            case 3: InDSSV_1Lop(dslopsv); break;
+            case 4: CapNhatSV_1Lop(dslopsv); break;
+            case 0: return;
+            default: cout << "Lua chon khong hop le." << endl;
+        }
+        if (choice != 0) pause();
+    } while (choice != 0);
+}
+
+void showMenuLopTinChi() {
+    cout << "\n====== QUAN LY LOP TIN CHI & DK ======" << endl;
+    cout << " [1] Mo/Cap nhat Lop Tin Chi (T/X/H) (A)" << endl;
+    cout << " [2] Dang ky Lop Tin Chi (G)" << endl;
+    cout << " [3] Huy Lop Tin Chi tu dong (H)" << endl;
+    cout << " [4] In Danh sach SV da dang ky mot LTC (B)" << endl;
+    cout << " [0] Quay lai Menu Chinh" << endl;
+    cout << "--------------------------------------" << endl;
+    cout << " >> Nhap lua chon cua ban: ";
+}
+
+void menuLopTinChi(PTRLTC &dsltc, treeMH &dsmh, DS_LOPSV &dslopsv) {
+    int choice;
+    do {
+        clearScreen();
+        showMenuLopTinChi();
+        if (!(cin >> choice)) { cin.clear(); choice = -1; }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        switch (choice) {
+            case 1: CapNhatLopTinChi(dsltc, dsmh); break;
+            case 2: DangKy_LTC(dsltc, dslopsv); break;
+            case 3: cout << "Thuc hien Huy Lop Tin Chi tu dong (H)..." << endl; break;
+            case 4: In_DSSV_DaDangKy_LTC(dsltc, dslopsv); break;
+            case 0: return;
+            default: cout << "Lua chon khong hop le." << endl;
+        }
+        if (choice != 0) pause();
+    } while (choice != 0);
+}
+
+void showMenuQuanLyDiem() {
+    cout << "\n==== QUAN LY NHAP/IN DIEM & THONG KE ====" << endl;
+    cout << " [1] Nhap diem mon hoc (I)" << endl;
+    cout << " [2] In Bang diem mon hoc cua mot LTC (J)" << endl;
+    cout << " [3] In Diem Trung Binh ket thuc khoa hoc cua mot Lop (K)" << endl;
+    cout << " [4] In Bang diem Tong ket cac mon cua mot Lop (L)" << endl;
+    cout << " [0] Quay lai Menu Chinh" << endl;
+    cout << "-----------------------------------------" << endl;
+    cout << " >> Nhap lua chon cua ban: ";
+}
+
+void menuQuanLyDiem(PTRLTC &dsltc, treeMH &dsmh, DS_LOPSV &dslopsv) {
+    int choice;
+    do {
+        clearScreen();
+        showMenuQuanLyDiem();
+        if (!(cin >> choice)) { cin.clear(); choice = -1; }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        switch (choice) {
+            case 1: cout << "Thuc hien Nhap diem mon hoc (I)..." << endl; break;
+            case 2: cout << "Thuc hien In Bang diem mon hoc (J)..." << endl; break;
+            case 3: cout << "Thuc hien In Diem Trung Binh khoa hoc (K)..." << endl; break;
+            case 4: cout << "Thuc hien In Bang diem Tong ket (L)..." << endl; break;
+            case 0: return;
+            default: cout << "Lua chon khong hop le." << endl;
+        }
+        if (choice != 0) pause();
+    } while (choice != 0);
+}
+
+
+void runMenu(PTRLTC &dsltc, treeMH &dsmh, DS_LOPSV &dslopsv) {
+    int choice;
+    do {
+        showMainMenu();
+        if (!(cin >> choice)) {
+            cin.clear();
+            choice = -1;
+        }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        clearScreen();
+        switch (choice) {
+            case 1: menuDanhMuc(dslopsv, dsmh); break;
+            case 2: menuLopTinChi(dsltc, dsmh, dslopsv); break;
+            case 3: menuQuanLyDiem(dsltc, dsmh, dslopsv); break;
+            case 9:
+                cout << "Chuc nang Luu Tru va Phuc Hoi dang duoc phat trien." << endl;
+                break;
+            case 0:
+                cout << "Dang thoat chuong trinh. Tam biet! 👋" << endl;
+                break;
+            default:
+                cout << "Lua chon khong hop le. Vui long chon lai." << endl;
+                break;
+        }
+        if (choice != 0) pause();
+    } while (choice != 0);
+}
+
+// =========================================================
+//            IV. TRIỂN KHAI HÀM XỬ LÝ DỮ LIỆU
+// =========================================================
+
+// --- QUẢN LÝ SINH VIÊN & LỚP SV ---
+void ThemSV(PTRSV &First, SinhVien sv); 
 nodeSV* TaoNodeSV(SinhVien sv) {
 	nodeSV* p = new nodeSV;
 	p->sv = sv;
 	p->next = NULL;
 	return p;
 }
-//Tìm sv theo mã
+
 nodeSV* TimKiemSV(PTRSV First, const char* masv) {
 	for (nodeSV* p = First; p != NULL; p = p->next)
 		if (strcmp(p->sv.MASV, masv) == 0) return p;
 	return NULL;
 }
-//Thêm sv vào ds
+
+nodeSV* timKiemSV_ToanTruong(DS_LOPSV &dslopsv, const char* masv) {
+    for (int i = 0; i < dslopsv.n; i++) {
+        nodeSV* sv_found = TimKiemSV(dslopsv.nodes[i]->FirstSV, masv);
+        if (sv_found != NULL) {
+            return sv_found;
+        }
+    }
+    return NULL;
+}
+
 void ThemSV(PTRSV &First, SinhVien sv) {
 	nodeSV* p = TaoNodeSV(sv);
 	if (First == NULL) {
@@ -56,24 +297,27 @@ void ThemSV(PTRSV &First, SinhVien sv) {
 	while (q->next != NULL) q = q->next;
 	q->next = p;
 }
-//Xóa sinh viên theo mã trong lớp
+
 bool XoaSV(PTRSV &First, const char* masv) {
 	nodeSV* p = First, *prev = NULL;
 	while (p != NULL && strcmp(p->sv.MASV, masv) != 0) {
 		prev = p; p = p->next;
 	}
-	if (p == NULL) return false; // không thấy
+	if (p == NULL) return false;
 	if (prev == NULL) First = p->next;
 	else prev->next = p->next;
 	delete p;
 	return true;
 }
-//Hiệu chỉnh sinh viên
+
 bool HieuChinhSV(PTRSV &First, const char* masv) {
 	nodeSV* p = TimKiemSV(First, masv);
 	if (p == NULL) return false;
-	cout << "Nhap ho moi (bo trong neu giu nguyen): ";
-	char tmp[51]; cin.getline(tmp, 51);
+	
+    char tmp[51];
+	
+    cout << "Nhap ho moi (bo trong neu giu nguyen): ";
+	cin.getline(tmp, 51);
 	if (strlen(tmp) > 0) strcpy(p->sv.HO, tmp);
 
 	cout << "Nhap ten moi (bo trong neu giu nguyen): ";
@@ -94,52 +338,17 @@ bool HieuChinhSV(PTRSV &First, const char* masv) {
 
 	return true;
 }
-//Save và đọc File SV
-void GhiFile_SV(PTRSV First, const char* filename) {
-	ofstream fo(filename);
-	for (nodeSV* p = First; p != NULL; p = p->next) {
-		fo << p->sv.MASV << ',' << p->sv.HO << ','
-		   << p->sv.TEN << ',' << p->sv.PHAI << ','
-		   << p->sv.SODT << ',' << p->sv.Email << endl;
-	}
-	fo.close();
-}
-void DocFile_SV(PTRSV &First, const char* filename) {
-	ifstream fi(filename);
-	SinhVien sv;
-	string tmp;
-	while (getline(fi, tmp, ',')) {
-		strcpy(sv.MASV, tmp.c_str());
-		getline(fi, tmp, ','); strcpy(sv.HO, tmp.c_str());
-		getline(fi, tmp, ','); strcpy(sv.TEN, tmp.c_str());
-		getline(fi, tmp, ','); strcpy(sv.PHAI, tmp.c_str());
-		getline(fi, tmp, ','); strcpy(sv.SODT, tmp.c_str());
-		getline(fi, tmp); strcpy(sv.Email, tmp.c_str());
-		ThemSV(First, sv);
-	}
-	fi.close();
-}
 
-//====Lớp SV====
-struct LopSV  {
-	char MALOP[16]; char TENLOP[51];
-	PTRSV FirstSV=NULL;
-};
-struct DS_LOPSV {
-	int n=0;
-	LopSV *nodes[MAX_LOPSV];
-};
-//Tìm lớp sinh viên theo mã lớp
+bool ThemLopSV(DS_LOPSV &ds, LopSV lop);
 LopSV* TimKiemLopSV(DS_LOPSV &ds, const char* malop) {
 	for (int i = 0; i < ds.n; i++) {
 		if (strcmp(ds.nodes[i]->MALOP, malop) == 0) {
-			return ds.nodes[i]; // tìm thấy lớp
+			return ds.nodes[i];
 		}
 	}
-	return NULL; // không tìm thấy
+	return NULL;
 }
 
-//Thêm lớp sinh viên vào danh sách
 bool ThemLopSV(DS_LOPSV &ds, LopSV lop) {
 	if (ds.n >= MAX_LOPSV) {
 		cout << "Danh sach lop sinh vien da day!\n";
@@ -156,36 +365,6 @@ bool ThemLopSV(DS_LOPSV &ds, LopSV lop) {
 	return true;
 }
 
-//Save và đọc file LopSV
-void GhiFile_LopSV(DS_LOPSV ds, const char* filename) {
-	ofstream fo(filename);
-	if (!fo) {
-		cout << "Khong mo duoc file de ghi!\n";
-		return;
-	}
-	for (int i = 0; i < ds.n; i++) {
-		fo << ds.nodes[i]->MALOP << ',' << ds.nodes[i]->TENLOP << endl;
-	}
-	fo.close();
-}
-void DocFile_LopSV(DS_LOPSV &ds, const char* filename) {
-	ifstream fi(filename);
-	if (!fi) {
-		cout << "Khong mo duoc file de doc!\n";
-		return;
-	}
-	string tmp;
-	LopSV lop;
-	while (getline(fi, tmp, ',')) {
-		strcpy(lop.MALOP, tmp.c_str());
-		getline(fi, tmp);
-		strcpy(lop.TENLOP, tmp.c_str());
-		lop.FirstSV = NULL;
-		ThemLopSV(ds, lop);
-	}
-	fi.close();
-}
-//Cập nhật sinh viên của 1 lớp
 void CapNhatSV_1Lop(DS_LOPSV &ds) {
 	char malop[16];
 	cout << "Nhap ma lop can cap nhat SV: ";
@@ -198,19 +377,22 @@ void CapNhatSV_1Lop(DS_LOPSV &ds) {
 	cout << "=== CAP NHAT SINH VIEN CHO LOP: " << lop->TENLOP << " ===\n";
 
 	while (true) {
-		cout << "\n1. Them SV\n2. Xoa SV\n3. Hieu chinh SV\n0. Thoat\nChon: ";
-		int chon; cin >> chon; cin.ignore();
+		cout << "\n1. Them SV\n2. Xoa SV\n3. Hieu chinh SV\n0. Thoat cap nhat\nChon: ";
+		int chon; 
+        if(!(cin >> chon)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); chon = -1; }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
 		if (chon == 0) break;
 
+		char masv[16];
 		switch (chon) {
 		case 1: {
 			while (true) {
 				SinhVien sv;
 				cout << "\nNhap ma SV (Enter de dung): ";
 				cin.getline(sv.MASV, 16);
-				if (strlen(sv.MASV) == 0) break; // dừng nhập
+				if (strlen(sv.MASV) == 0) break;
 				if (TimKiemSV(lop->FirstSV, sv.MASV)) {
-					cout << "Ma SV da ton tai!\n";
+					cout << "Ma SV da ton tai trong lop nay!\n";
 					continue;
 				}
 				cout << "Nhap ho: "; cin.getline(sv.HO, 51);
@@ -223,57 +405,509 @@ void CapNhatSV_1Lop(DS_LOPSV &ds) {
 			break;
 		}
 		case 2: {
-			char masv[16];
-			cout << "Nhap ma SV can xoa: ";
-			cin.getline(masv, 16);
+			cout << "Nhap ma SV can xoa: "; cin.getline(masv, 16);
 			if (XoaSV(lop->FirstSV, masv))
-				cout << "Da xoa!\n";
+				cout << "Da xoa sinh vien " << masv << "!\n";
 			else
-				cout << "Khong tim thay SV!\n";
+				cout << "Khong tim thay SV " << masv << " trong lop!\n";
 			break;
 		}
 		case 3: {
-			char masv[16];
-			cout << "Nhap ma SV can hieu chinh: ";
-			cin.getline(masv, 16);
+			cout << "Nhap ma SV can hieu chinh: "; cin.getline(masv, 16);
 			if (HieuChinhSV(lop->FirstSV, masv))
-				cout << "Da cap nhat!\n";
+				cout << "Da cap nhat thong tin sinh vien " << masv << "!\n";
 			else
-				cout << "Khong tim thay SV!\n";
+				cout << "Khong tim thay SV " << masv << " trong lop!\n";
 			break;
 		}
 		default: cout << "Lua chon khong hop le!\n";
 		}
 	}
 }
-//
-struct DangKy {
-	char MASV[16]; float DIEM;
-	bool huydangky=false;
+
+struct SV_Sort {
+	SinhVien sv;
 };
-struct nodeDK {
-	DangKy dk;
-	nodeDK *next;
-};
-typedef nodeDK* PTRDK;
-struct LopTinChi {
-	int MALOPTC;
-	char MAMH[11];
-	char NienKhoa[10];
-	int Hocky, Nhom, sosvmin, sosvmax;
-	bool huylop = false;
-	PTRDK dssvdk=NULL;
-};
-struct nodeLopTinChi {
-	LopTinChi ltc;
-	nodeLopTinChi *next;
-};
-typedef nodeLopTinChi* PTRLTC;
- int main(){
+
+int CompareSVByName(const void* a, const void* b) {
+    const SV_Sort* svA = (const SV_Sort*)a;
+    const SV_Sort* svB = (const SV_Sort*)b;
+    int cmpTen = strcmp(svA->sv.TEN, svB->sv.TEN);
+    if (cmpTen != 0) return cmpTen;
+    return strcmp(svA->sv.HO, svB->sv.HO);
+}
+
+void InDSSV_1Lop(DS_LOPSV &ds) {
+    char malop[16];
+    cout << "Nhap ma lop can in DSSV: ";
+    cin.getline(malop, 16);
+    LopSV* lop = TimKiemLopSV(ds, malop);
+    if (lop == NULL) {
+        cout << "Khong tim thay lop!\n";
+        return;
+    }
+    int count = 0;
+    for (nodeSV* p = lop->FirstSV; p != NULL; p = p->next) {
+        count++;
+    }
+    if (count == 0) {
+        cout << "Lop chua co sinh vien nao!\n";
+        return;
+    }
+
+    SV_Sort* dsSV = new SV_Sort[count];
+    int i = 0;
+    for (nodeSV* p = lop->FirstSV; p != NULL; p = p->next) {
+        dsSV[i++].sv = p->sv;
+    }
+    qsort(dsSV, count, sizeof(SV_Sort), CompareSVByName);
+    cout << "\n=========== DANH SACH SINH VIEN LOP: " << lop->TENLOP << " ===========\n";
+    cout << setw(5) << "STT" << " | " << setw(15) << "Ma SV" << " | " << setw(20) << left << "Ho" << " | " << setw(10) << "Ten" << " | " << setw(5) << "Phai" << endl;
+    cout << "----------------------------------------------------------------------\n";
+    for (int j = 0; j < count; j++) {
+        cout << setw(5) << j + 1 << " | "
+             << setw(15) << dsSV[j].sv.MASV << " | "
+             << setw(20) << left << dsSV[j].sv.HO << " | "
+             << setw(10) << dsSV[j].sv.TEN << " | "
+             << setw(5) << dsSV[j].sv.PHAI << endl;
+    }
+    cout << "======================================================================\n";
+    delete[] dsSV;
+}
+
+// --- QUẢN LÝ MÔN HỌC (MH) ---
+int max(int a, int b) { return (a > b) ? a : b; }
+int GetHeight(treeMH root) {
+    if (root == NULL) return 0;
+    return root->mh.height;
+}
+void UpdateHeight(treeMH root) {
+    if (root != NULL)
+        root->mh.height = 1 + max(GetHeight(root->left), GetHeight(root->right));
+}
+nodeMH* TaoNodeMH(MonHoc mh) {
+    nodeMH* p = new nodeMH;
+    p->mh = mh;
+    p->left = p->right = NULL;
+    p->mh.height = 1;
+    return p;
+}
+nodeMH* TimKiemMH(treeMH root, const char* mamh) {
+    if (root == NULL || strcmp(root->mh.MAMH, mamh) == 0)
+        return root;
+    if (strcmp(root->mh.MAMH, mamh) < 0)
+        return TimKiemMH(root->right, mamh);
+    return TimKiemMH(root->left, mamh);
+}
+bool ThemMH(treeMH &root, MonHoc mh) {
+    if (root == NULL) {
+        root = TaoNodeMH(mh);
+        return true;
+    }
+    int cmp = strcmp(root->mh.MAMH, mh.MAMH);
+    if (cmp == 0) return false;
+    bool result;
+    if (cmp < 0)
+        result = ThemMH(root->right, mh);
+    else
+        result = ThemMH(root->left, mh);
+    UpdateHeight(root);
+    return result;
+}
+nodeMH* TimNodeThayThe(treeMH &p) {
+    nodeMH* cur = p->right;
+    while (cur->left != NULL) cur = cur->left;
+    return cur;
+}
+bool XoaMH(treeMH &root, const char* mamh) {
+    if (root == NULL) return false;
+    int cmp = strcmp(root->mh.MAMH, mamh);
+    if (cmp < 0) {
+        if (XoaMH(root->right, mamh)) { UpdateHeight(root); return true; }
+    } else if (cmp > 0) {
+        if (XoaMH(root->left, mamh)) { UpdateHeight(root); return true; }
+    } else {
+        nodeMH* p = root;
+        if (root->left == NULL) { root = root->right; delete p; }
+        else if (root->right == NULL) { root = root->left; delete p; }
+        else {
+            nodeMH* temp = TimNodeThayThe(root);
+            root->mh = temp->mh;
+            if (XoaMH(root->right, temp->mh.MAMH)) { UpdateHeight(root); return true; }
+        }
+        if (root != NULL) UpdateHeight(root);
+        return true;
+    }
+    return false;
+}
+struct MH_Sort { MonHoc mh; };
+void ThuThapMH(treeMH root, MH_Sort ds[], int &count) {
+    if (root == NULL) return;
+    ThuThapMH(root->left, ds, count);
+    ds[count++].mh = root->mh;
+    ThuThapMH(root->right, ds, count);
+}
+int CompareMHByName(const void* a, const void* b) {
+    return strcmp(((MH_Sort*)a)->mh.TENMH, ((MH_Sort*)b)->mh.TENMH);
+}
+void InDSMHTangDanTheoTen(treeMH root) {
+    MH_Sort ds[1000]; 
+    int count = 0;
+    ThuThapMH(root, ds, count);
+    if (count == 0) {
+        cout << "Danh sach mon hoc rong.\n";
+        return;
+    }
+    qsort(ds, count, sizeof(MH_Sort), CompareMHByName);
+    cout << "\n================= DANH SACH MON HOC (Sap xep theo Ten) ================\n";
+    cout << setw(10) << "Ma MH" << " | " << setw(50) << left << "Ten Mon Hoc" << " | " << setw(4) << "LT" << " | " << setw(4) << "TH" << endl;
+    cout << "--------------------------------------------------------------------------\n";
+    for (int i = 0; i < count; i++) {
+        cout << setw(10) << ds[i].mh.MAMH << " | "
+             << setw(50) << left << ds[i].mh.TENMH << " | "
+             << setw(4) << right << ds[i].mh.STCLT << " | "
+             << setw(4) << right << ds[i].mh.STCTH << endl;
+    }
+    cout << "==========================================================================\n";
+}
+void CapNhatMonHoc(treeMH &root) {
+    cout << "=== CAP NHAT MON HOC (E) ===\n";
+    while (true) {
+        cout << "\n1. Them MH\n2. Xoa MH\n3. Hieu chinh MH\n0. Thoat cap nhat\nChon: ";
+        int chon; 
+        if(!(cin >> chon)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); chon = -1; }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        if (chon == 0) break;
+        char mamh[11];
+        MonHoc mh;
+        nodeMH* p;
+        switch (chon) {
+        case 1: {
+            cout << "Nhap Ma MH: "; cin.getline(mh.MAMH, 11);
+            if (TimKiemMH(root, mh.MAMH) != NULL) {
+                cout << "Ma mon hoc da ton tai!\n"; continue;
+            }
+            cout << "Nhap Ten MH: "; cin.getline(mh.TENMH, 51);
+            cout << "So TC Ly Thuyet: "; 
+            if (!(cin >> mh.STCLT)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); mh.STCLT = -1; }
+            cout << "So TC Thuc Hanh: "; 
+            if (!(cin >> mh.STCTH)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); mh.STCTH = -1; }
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            if (mh.STCLT < 0 || mh.STCTH < 0) { cout << "So tin chi khong hop le!\n"; continue; }
+            mh.height = 1;
+            if (ThemMH(root, mh)) cout << "Them MH thanh cong!\n";
+            else cout << "Them MH that bai (Ma MH trung)!\n";
+            break;
+        }
+        case 2: {
+            cout << "Nhap Ma MH can xoa: "; cin.getline(mamh, 11);
+            if (XoaMH(root, mamh)) cout << "Xoa MH thanh cong!\n";
+            else cout << "Khong tim thay Ma MH de xoa!\n";
+            break;
+        }
+        case 3: {
+            cout << "Nhap Ma MH can hieu chinh: "; cin.getline(mamh, 11);
+            p = TimKiemMH(root, mamh);
+            if (p == NULL) { cout << "Khong tim thay Ma MH!\n"; break; }
+            cout << "Hieu chinh MH: " << p->mh.TENMH << endl;
+            char tmp[51];
+            cout << "Nhap Ten MH moi (bo trong giu nguyen): "; cin.getline(tmp, 51);
+            if (strlen(tmp) > 0) strcpy(p->mh.TENMH, tmp);
+            cout << "So TC Ly Thuyet moi (Nhap -1 giu nguyen): "; int stc; 
+            if (!(cin >> stc)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); stc = -1; }
+            if (stc >= 0) p->mh.STCLT = stc;
+            cout << "So TC Thuc Hanh moi (Nhap -1 giu nguyen): ";
+            if (!(cin >> stc)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); stc = -1; }
+            if (stc >= 0) p->mh.STCTH = stc;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Hieu chinh MH thanh cong!\n";
+            break;
+        }
+        default: cout << "Lua chon khong hop le!\n";
+        }
+    }
+}
+
+
+// --- QUẢN LÝ LỚP TÍN CHỈ & ĐĂNG KÝ (A, B, G) ---
+nodeLopTinChi* TimKiemLTC(PTRLTC First, int maloptc) {
+    for (nodeLopTinChi* p = First; p != NULL; p = p->next) {
+        if (p->ltc.MALOPTC == maloptc) return p;
+    }
+    return NULL;
+}
+void ThemLTC(PTRLTC &First, const char* mamh, const char* nienkhoa, int hocky, int nhom, int sosvmin, int sosvmax) {
+    nodeLopTinChi* p = new nodeLopTinChi;
+    strcpy(p->ltc.MAMH, mamh);
+    strcpy(p->ltc.NienKhoa, nienkhoa);
+    p->ltc.Hocky = hocky;
+    p->ltc.Nhom = nhom;
+    p->ltc.sosvmin = sosvmin;
+    p->ltc.sosvmax = sosvmax;
+    p->ltc.dssvdk = NULL;
+    p->ltc.huylop = false;
+    p->ltc.MALOPTC = ++LTC_ID_COUNTER;
+    p->next = First;
+    First = p;
+}
+void CapNhatLopTinChi(PTRLTC &First, treeMH dsmh) {
+    cout << "=== CAP NHAT LOP TIN CHI (A) ===\n";
+    while (true) {
+        cout << "\n1. Them LTC\n2. Xoa LTC\n3. Hieu chinh LTC\n0. Thoat cap nhat\nChon: ";
+        int chon; 
+        if(!(cin >> chon)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); chon = -1; }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        if (chon == 0) break;
+        switch (chon) {
+        case 1: { 
+            char mamh[11], nienkhoa[10];
+            int hocky, nhom, sosvmin, sosvmax;
+            cout << "Nhap Ma MH: "; cin.getline(mamh, 11);
+            if (TimKiemMH(dsmh, mamh) == NULL) {
+                cout << "Ma mon hoc khong ton tai! Vui long them mon hoc truoc.\n"; 
+                break;
+            }
+            cout << "Nhap Nien Khoa: "; cin.getline(nienkhoa, 10);
+            cout << "Nhap Hoc Ky: "; 
+            if (!(cin >> hocky)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); break; }
+            cout << "Nhap Nhom: "; 
+            if (!(cin >> nhom)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); break; }
+            cout << "Nhap so sv min: "; 
+            if (!(cin >> sosvmin)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); break; }
+            cout << "Nhap so sv max: "; 
+            if (!(cin >> sosvmax)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); break; }
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            if (sosvmin > sosvmax || hocky <= 0 || sosvmin < 0) {
+                 cout << "Du lieu khong hop le (Min > Max hoac Hoc Ky/Min < 0)!\n";
+                 break;
+            }
+            ThemLTC(First, mamh, nienkhoa, hocky, nhom, sosvmin, sosvmax);
+            cout << "Them LTC thanh cong! Ma LTC moi la: " << LTC_ID_COUNTER << endl;
+            break;
+        }
+        case 2: {
+            int maloptc;
+            cout << "Nhap Ma LTC can xoa: "; 
+            if (!(cin >> maloptc)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); break; }
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            nodeLopTinChi* p = First, *prev = NULL;
+            while (p != NULL && p->ltc.MALOPTC != maloptc) {
+                prev = p; p = p->next;
+            }
+            if (p == NULL) { cout << "Khong tim thay LTC!\n"; break; }
+            if (p->ltc.dssvdk != NULL) {
+                cout << "LTC da co sinh vien dang ky, khong the xoa!\n"; break;
+            }
+            if (prev == NULL) First = p->next;
+            else prev->next = p->next;
+            delete p;
+            cout << "Xoa LTC thanh cong!\n";
+            break;
+        }
+        case 3: {
+            int maloptc;
+            cout << "Nhap Ma LTC can hieu chinh: "; 
+            if (!(cin >> maloptc)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); break; }
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            nodeLopTinChi* p = TimKiemLTC(First, maloptc);
+            if (p == NULL) { cout << "Khong tim thay LTC!\n"; break; }
+            cout << "Hieu chinh LTC " << maloptc << " - Ma MH: " << p->ltc.MAMH << endl;
+            char tmp[10];
+            cout << "Nhap Nien Khoa moi (bo trong giu nguyen): "; cin.getline(tmp, 10);
+            if (strlen(tmp) > 0) strcpy(p->ltc.NienKhoa, tmp);
+            cout << "Nhap Hoc Ky moi (Nhap -1 giu nguyen): "; int hk; 
+            if (!(cin >> hk)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); hk = -1; }
+            if (hk > 0) p->ltc.Hocky = hk;
+            cout << "Nhap Nhom moi (Nhap -1 giu nguyen): "; int nhom; 
+            if (!(cin >> nhom)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); nhom = -1; }
+            if (nhom >= 0) p->ltc.Nhom = nhom;
+            cout << "Nhap so sv min moi (Nhap -1 giu nguyen): "; int min; 
+            if (!(cin >> min)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); min = -1; }
+            if (min >= 0) p->ltc.sosvmin = min;
+            cout << "Nhap so sv max moi (Nhap -1 giu nguyen): "; int max; 
+            if (!(cin >> max)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); max = -1; }
+            if (max >= 0) p->ltc.sosvmax = max;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Hieu chinh LTC thanh cong!\n";
+            break;
+        }
+        default: cout << "Lua chon khong hop le!\n";
+        }
+    }
+}
+void In_DSSV_DaDangKy_LTC(PTRLTC dsltc, DS_LOPSV &dslopsv) {
+    char nienKhoa[10], maMH[11];
+    int hocKy, nhom;
+    cout << "--- IN DANH SACH SINH VIEN DANG KY (B) ---\n";
+    cout << "Nhap Nien Khoa: "; cin.getline(nienKhoa, 10);
+    cout << "Nhap Hoc Ky: ";
+    if (!(cin >> hocKy)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); return; }
+    cout << "Nhap Nhom: ";
+    if (!(cin >> nhom)) { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); return; }
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cout << "Nhap Ma Mon Hoc: "; cin.getline(maMH, 11);
+    nodeLopTinChi* ltc_found = NULL;
+    for (nodeLopTinChi* p = dsltc; p != NULL; p = p->next) {
+        if (strcmp(p->ltc.NienKhoa, nienKhoa) == 0 &&
+            strcmp(p->ltc.MAMH, maMH) == 0 &&
+            p->ltc.Hocky == hocKy &&
+            p->ltc.Nhom == nhom) 
+        {
+            ltc_found = p;
+            break;
+        }
+    }
+    if (ltc_found == NULL) {
+        cout << "\n--> Khong tim thay lop tin chi phu hop voi thong tin da nhap.\n";
+        return;
+    }
+    PTRDK dsdk = ltc_found->ltc.dssvdk;
+    if (dsdk == NULL) {
+        cout << "\n--> Lop tin chi [" << ltc_found->ltc.MALOPTC << "] chua co sinh vien nao dang ky.\n";
+        return;
+    }
+    cout << "\n=========== DANH SACH SINH VIEN DANG KY LOP " << ltc_found->ltc.MALOPTC << " ===========\n";
+    cout << left << setw(5) << "STT" << " | " << setw(15) << "Ma SV" << " | " << setw(30) << "Ho va Ten" << " | " << setw(10) << "Diem" << endl;
+    cout << setfill('-') << setw(65) << "-" << setfill(' ') << endl;
+    int stt = 1;
+    for (nodeDK* p_dk = dsdk; p_dk != NULL; p_dk = p_dk->next) {
+        if (p_dk->dk.huydangky == false) { 
+            nodeSV* sv_info = timKiemSV_ToanTruong(dslopsv, p_dk->dk.MASV);
+            if (sv_info != NULL) {
+                cout << left << setw(5) << stt++ << " | "
+                     << setw(15) << sv_info->sv.MASV << " | "
+                     << setw(30) << (string(sv_info->sv.HO) + " " + string(sv_info->sv.TEN)) << " | "
+                     << setw(10) << fixed << setprecision(2) << p_dk->dk.DIEM << endl;
+            }
+        }
+    }
+    cout << "=================================================================\n";
+}
+
+int DemSoSVDK(PTRDK dsdk) {
+    int count = 0;
+    for (nodeDK* p = dsdk; p != NULL; p = p->next) {
+        if (!p->dk.huydangky) {
+            count++;
+        }
+    }
+    return count;
+}
+nodeDK* TimKiemDK(PTRDK dsdk, const char* masv) {
+    for (nodeDK* p = dsdk; p != NULL; p = p->next) {
+        if (strcmp(p->dk.MASV, masv) == 0) {
+            return p;
+        }
+    }
+    return NULL;
+}
+void In_DSLTC_CoTheDangKy(PTRLTC dsltc) {
+    cout << "\n--- DANH SACH LOP TIN CHI CO THE DANG KY ---\n";
+    cout << left << setw(10) << "Ma LTC" << " | " << setw(10) << "Ma MH" << " | " << setw(12) << "Nien Khoa" << " | " << setw(5) << "HK" << " | " << setw(5) << "Nhom" << endl;
+    cout << setfill('-') << setw(55) << "-" << setfill(' ') << endl;
+    bool coLop = false;
+    for (nodeLopTinChi* p = dsltc; p != NULL; p = p->next) {
+        if (!p->ltc.huylop) {
+            coLop = true;
+            cout << left << setw(10) << p->ltc.MALOPTC << " | "
+                 << setw(10) << p->ltc.MAMH << " | "
+                 << setw(12) << p->ltc.NienKhoa << " | "
+                 << setw(5) << p->ltc.Hocky << " | "
+                 << setw(5) << p->ltc.Nhom << endl;
+        }
+    }
+    if (!coLop) {
+        cout << "--> Hien tai chua co lop tin chi nao duoc mo.\n";
+    }
+    cout << "------------------------------------------------\n";
+}
+
+void DangKy_LTC(PTRLTC &dsltc, DS_LOPSV &dslopsv) {
+    In_DSLTC_CoTheDangKy(dsltc); 
+    int maloptc;
+    cout << "\nNhap Ma LTC muon dang ky (nhap 0 de huy): ";
+    if (!(cin >> maloptc) || maloptc == 0) { 
+        cin.clear(); 
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+        cout << "--> Huy bo thao tac.\n";
+        return; 
+    }
+    cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+    char masv[16];
+    cout << "Nhap Ma Sinh Vien cua ban: ";
+    cin.getline(masv, 16);
+    if (strlen(masv) == 0) {
+        cout << "--> Huy bo thao tac.\n";
+        return;
+    }
+    nodeLopTinChi* ltc_dk = TimKiemLTC(dsltc, maloptc);
+    if (ltc_dk == NULL) {
+        cout << "--> Loi: Lop tin chi khong ton tai!\n";
+        return;
+    }
+    if (ltc_dk->ltc.huylop) {
+        cout << "--> Loi: Lop tin chi nay da bi huy!\n";
+        return;
+    }
+    if (timKiemSV_ToanTruong(dslopsv, masv) == NULL) {
+        cout << "--> Loi: Ma sinh vien khong ton tai!\n";
+        return;
+    }
+    nodeDK* dk_found = TimKiemDK(ltc_dk->ltc.dssvdk, masv);
+    if (dk_found != NULL) {
+        if (dk_found->dk.huydangky == true) {
+            dk_found->dk.huydangky = false;
+            cout << "--> Thong bao: Kich hoat lai dang ky thanh cong cho SV " << masv << ".\n";
+        } else {
+            cout << "--> Loi: Sinh vien " << masv << " da dang ky lop nay roi!\n";
+        }
+        return;
+    }
+    int soSVHienTai = DemSoSVDK(ltc_dk->ltc.dssvdk);
+    if (soSVHienTai >= ltc_dk->ltc.sosvmax) {
+        cout << "--> Loi: Lop tin chi da day, khong the dang ky them!\n";
+        return;
+    }
+    DangKy dk_moi;
+    strcpy(dk_moi.MASV, masv);
+    dk_moi.DIEM = 0;
+    dk_moi.huydangky = false;
+    nodeDK* p = new nodeDK;
+    p->dk = dk_moi;
+    p->next = ltc_dk->ltc.dssvdk;
+    ltc_dk->ltc.dssvdk = p;
+    cout << "--> Dang ky thanh cong cho sinh vien " << masv << " vao lop " << maloptc << "!\n";
+}
+
+// =========================================================
+//                   V. HÀM MAIN
+// =========================================================
+
+int main(){
     PTRLTC dsltc=NULL;
- 	treeMH dsmh=NULL;
- 	DS_LOPSV dslopsv;
- }
+    treeMH dsmh=NULL;
+    DS_LOPSV dslopsv;
 
+    // DU LIEU MAU
+    LopSV lop1 = {"D19CQCN01", "CNTT K19 Nhom 1", NULL};
+    ThemLopSV(dslopsv, lop1);
 
+    MonHoc m1 = {"LTDT", "Lap Trinh Dien Thoai", 2, 1, 1};
+    MonHoc m2 = {"CTDL", "Cau Truc Du Lieu", 2, 1, 1};
+    ThemMH(dsmh, m1);
+    ThemMH(dsmh, m2);
 
+    SinhVien sv1 = {"SV001", "Nguyen Van", "A", "Nam", "0901", "a@mail"};
+    SinhVien sv2 = {"SV003", "Tran Thi", "B", "Nu", "0903", "b@mail"};
+    SinhVien sv3 = {"SV002", "Le Van", "C", "Nam", "0902", "c@mail"};
+
+    LopSV* lop = TimKiemLopSV(dslopsv, "D19CQCN01");
+    if (lop) {
+        ThemSV(lop->FirstSV, sv1);
+        ThemSV(lop->FirstSV, sv2);
+        ThemSV(lop->FirstSV, sv3);
+    }
+    
+    runMenu(dsltc, dsmh, dslopsv);
+    return 0;
+}
